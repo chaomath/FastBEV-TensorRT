@@ -16,9 +16,7 @@ lean_tensor_rt := /usr/lib/aarch64-linux-gnu/
 lean_cudnn     := /usr/local/cuda
 lean_opencv    := /usr/include/
 lean_cuda      := /usr/local/cuda
-use_python     := false
-python_root    := /datav/software/anaconda3
-python_name    := python3.9
+
 
 include_paths := src        \
 			src/application \
@@ -42,15 +40,7 @@ link_librarys := opencv_core opencv_imgproc opencv_videoio opencv_imgcodecs \
 			cuda cublas cudart cudnn \
 			stdc++ protobuf dl  opencv_highgui opencv_ml
 
-# HAS_PYTHON表示是否编译python支持
-support_define    := 
 
-ifeq ($(use_python), true) 
-include_paths  += $(lean_python)/include/python3.8
-library_paths  += $(lean_python)/lib
-link_librarys  += python3.8
-support_define += -DHAS_PYTHON
-endif
 
 paths     := $(foreach item,$(library_paths),-Wl,-rpath=$(item))
 include_paths := $(foreach item,$(include_paths),-I$(item))
@@ -105,5 +95,4 @@ bev : workspace/pro
 	@cd workspace && ./pro fastbev
 
 clean :
-	@rm -rf build workspace/pro python/trtpy/libtrtpyc.so python/build python/dist python/trtpy.egg-info python/trtpy/__pycache__
-	@rm -rf build
+	@rm -rf build workspace/pro 
