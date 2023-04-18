@@ -3,6 +3,8 @@
 
 # how to use
 
+i will upload a onnx and some images for nuScenes-minni to text. wait few days.
+
 pytorch to onnx
 
 https://github.com/thfylsty/FastBEV
