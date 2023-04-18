@@ -11,7 +11,7 @@ cu_objs := $(cu_objs:src/%=build/%)
 cu_mk   := $(cu_objs:.cuo=.cumk)
 
 # 配置你的库路径
-lean_protobuf  := /home/wicri/fy/code/cpp_cuda_centernet/protobuf/aarch64/protobuf
+lean_protobuf  := /data/fy/envs/protobuf/aarch64/protobuf
 lean_tensor_rt := /usr/lib/aarch64-linux-gnu/
 lean_cudnn     := /usr/local/cuda
 lean_opencv    := /usr/include/
