@@ -31,6 +31,21 @@ just support Tensorrt8.x
 
 有兴趣的佬们可以试试看。
 
+
+below ↓ translate by google ahhhhhhh
+
+Actually, adding timing is also very simple,
+
+Divide a space in the plugin's workspace to save the features of the previous frame.
+
+In Pytorch2Onnx, the plugin rt returns two tensors and passes them to the 3D convolution section.
+
+In the implementation of C++cu, the results are directly saved to the workspace, and the next time the plugin is executed, two can be returned directly.
+
+I am currently unable to use it here, so I did not join. I only provide ideas.
+
+Big guys can give it a try.
+
 # Reference:
 
 TensorRT
