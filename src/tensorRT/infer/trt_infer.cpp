@@ -12,7 +12,7 @@
 using namespace nvinfer1;
 using namespace std;
 
-#define FLAG 0
+#define FLAG 1
 
 
 static void append_to_file(const string& file, const string& data){

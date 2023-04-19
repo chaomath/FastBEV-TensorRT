@@ -15,10 +15,8 @@ namespace Fastbev{
         int position = blockDim.x * blockIdx.x + threadIdx.x;
 		if (position >= num_bboxes) return;
  
-        float* pitem     = predict + 20 * position; //  fastbev: 7+2+11  x y z dx dy dz r d classnum 
-        // float objectness = pitem[4];
-        // if(objectness < confidence_threshold)
-        //     return;
+        float* pitem     = predict + 20 * position; //  fastbev: 7+2+11  x y z dx dy dz r d1 d2  classnum 
+
         float* class_confidence = pitem;
         float *conf_tmp = class_confidence;
         float confidence = *class_confidence++;
@@ -29,9 +27,7 @@ namespace Fastbev{
                 label      = i;
             }
         }
-        // printf("confidence_threshold[%f] %f",confidence_threshold,*pitem);
 
-        // confidence *= objectness;
         if(confidence < confidence_threshold)
             return;
 
@@ -84,7 +80,7 @@ namespace Fastbev{
         float b_area = max(0.0f, bright - bleft) * max(0.0f, bbottom - btop);
         return c_area / (a_area + b_area - c_area);
     }
-
+    // BEV NMS
     static __global__ void nms_kernel(float* bboxes, int max_objects, float threshold){
 
         int position = (blockDim.x * blockIdx.x + threadIdx.x);

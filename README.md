@@ -3,7 +3,7 @@
 
 # how to use
 
-i will upload a onnx and some images for nuScenes-minni to text. wait few days.
+i will upload a onnx and some images on nuScenes to test. wait few (2-3) days.
 
 pytorch to onnx
 

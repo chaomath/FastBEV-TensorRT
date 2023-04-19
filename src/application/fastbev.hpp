@@ -40,8 +40,6 @@ namespace Fastbev{
         int get_height() const{return cvmats[0].rows;}
         cv::Size get_size() const{return cv::Size(get_width(), get_height()*3);}
         bool empty() const{return cvmats.size()==0 || cvmats[0].empty();}
-
-
     };
 
 

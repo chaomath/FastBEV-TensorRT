@@ -110,7 +110,7 @@ static void inference_and_performance(int deviceid, const string& engine_file, T
         return;
     }
     
-    
+    // 三相机就扔三张图像
     std::vector<cv::Mat> images_mat;
     auto imagef = cv::imread("./images/2022-05-12-11-24-22_000005_front.png");
     auto imagel = cv::imread("./images/2022-05-12-11-24-22_000005_left.png");

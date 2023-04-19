@@ -292,7 +292,7 @@ namespace Fastbev{
             int max_batch_size = engine->get_max_batch_size();
             auto input         = engine->tensor("input");
             auto output        = engine->tensor("output");
-            int num_classes    = output->size(2) - 9;  //  fastbev classnum fastbev: 7+ 1 +11 x y z w l h r d classnum
+            int num_classes    = output->size(2) - 9;  //  fastbev classnum fastbev: 7+ 2 +11 x y z w l h r d1 d2  classnum
             printf("num_classes : [%d] \n",num_classes);
 
             input_cam_num_      = input->size(1);
@@ -457,26 +457,21 @@ namespace Fastbev{
             uint8_t* image_host           = size_matrix + cpu_workspace;
 
 
-            float mean[3]={103.53, 116.28, 123.675 }; // bgr
+            float mean[3]={103.53, 116.28, 123.675 }; // bgr 均值方差，给opencv用的
             float std[3]={ 57.375, 57.12, 58.395};
 
             auto tensor_input_size = input_width_*input_height_*3;
             int count=0;
             for (int i = 0; i < image.cvmats.size(); ++i) {
                 cv::Mat img = image.cvmats[i];
+                // 这里应该调用resize_bilinear_and_normalize 等trtpro的函数 
+                // TODO 待优化 
                 resize_normal_mat(img,input_width_,input_height_,mean,std);
                 checkCudaRuntime(cudaMemcpyAsync(tensor->gpu<float>() + i * tensor_input_size, reinterpret_cast<float*>(img.data), tensor_input_size*sizeof(float), cudaMemcpyHostToDevice, preprocess_stream));
-
             }
             cudaStreamSynchronize(preprocess_stream);
 
-            // // 打印前100个float
-            // float* input_data = static_cast<float*>(tensor->cpu<float>());
-            // for (int i = 0; i < 100; ++i) {
-            //     std::cout << input_data[i] << " ";
-            // }
-            // std::cout << "INPUT === "<<std::endl;
-            // printf(" \ntensor->cpu<float>() \n ");
+
             return true;
         }
 
