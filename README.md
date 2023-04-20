@@ -1,6 +1,19 @@
 
 # Detail readme.md is coming soon 
 
+# test on nuScenes
+
+```shell
+mkdir workspace
+mv ./nuscenes/* ./workspace/
+make bev -j8
+
+```
+Note: This onnx model has not been trained well. There are also some abnormal predictions. 
+
+JUST FOR TEST ONLY. 
+
+
 # how to use
 
 i will upload a onnx and some images on nuScenes to test. wait few (2-3) days.
