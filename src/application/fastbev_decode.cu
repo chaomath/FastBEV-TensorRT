@@ -15,8 +15,8 @@ namespace Fastbev{
         int position = blockDim.x * blockIdx.x + threadIdx.x;
 		if (position >= num_bboxes) return;
  
-        float* pitem     = predict + 20 * position; //  fastbev: 7+2+11  x y z dx dy dz r d1 d2  classnum 
-
+        float* pitem     = predict + (7+2+num_classes +2) * position; //  fastbev: 7+2+11  x y z dx dy dz r d1 d2  classnum  +2 velocity
+        
         float* class_confidence = pitem;
         float *conf_tmp = class_confidence;
         float confidence = *class_confidence++;
@@ -27,7 +27,7 @@ namespace Fastbev{
                 label      = i;
             }
         }
-
+        
         if(confidence < confidence_threshold)
             return;
 
@@ -43,10 +43,12 @@ namespace Fastbev{
         float dy    = *pitem++;
         float dz    = *pitem++;
         float r     = *pitem++;
+        float v1     = *pitem++;
+        float v2     = *pitem++;
         float dir1   = *pitem++;
         float dir2   = *pitem++;
 
-        // printf("label[%d] | confidence[%f] | x[%f] | y[%f] | z[%f] | dx[%f] | dy[%f] | dz[%f] | r[%f] | dir[%f]   \n",label,confidence,x,y,z,dx,dy,dz,r, dir);
+        // printf("label[%d] | confidence[%f] | x[%f] | y[%f] | z[%f] | dx[%f] | dy[%f] | dz[%f] | r[%f]   \n",label,confidence,x,y,z,dx,dy,dz,r);
         
         float* pout_item = parray + 1 + index * NUM_BOX_ELEMENT;
         *pout_item++ = x;

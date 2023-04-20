@@ -418,9 +418,11 @@ namespace TRT {
 		}
 
 		// synchronize();
-		// // 打印前100个float
+		//// 打印前100个float
 		// float* outputs_data = static_cast<float*>(outputs_[0]->cpu());
 		// for (int i = 0; i < 100; ++i) {
+		// 	if(i%21==0)
+		// 		std::cout <<std::endl;
 		// 	std::cout << outputs_data[i] << " ";
 		// }
 		// std::cout << "OUTPUT === "<<std::endl;

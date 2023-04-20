@@ -104,14 +104,15 @@ __global__ void backproject_LUT_kernel(float* features, int32_t* LUT, float* vol
 
 void backproject_LUT_CUDA(float* features_dev, int32_t* LUT_dev, float* volume_dev,
                         int32_t n_images,  int32_t n_channels,
-                        float* n_voxels) {
+                        int* n_voxels) {
     // int32_t n_x_voxels = int32_t(n_voxels[0]);
     // int32_t n_y_voxels = int32_t(n_voxels[1]);
     // int32_t n_z_voxels = int32_t(n_voxels[2]);
-    int32_t n_x_voxels = 200;
-    int32_t n_y_voxels = 200;
-    int32_t n_z_voxels = 4;
-    size_t total_nrof_voxels = n_images * n_x_voxels * n_y_voxels * n_z_voxels;
+    // int32_t n_x_voxels = 200;
+    // int32_t n_y_voxels = 200;
+    // int32_t n_z_voxels = 6;
+    // size_t total_nrof_voxels = n_images * n_x_voxels * n_y_voxels * n_z_voxels;
+    size_t total_nrof_voxels = static_cast<int>(n_images * n_voxels[0] * n_voxels[1] * n_voxels[2]);
     #define BLOCK_SIZE 1024
     dim3 thread_per_block(BLOCK_SIZE);
     dim3 block_per_grid((total_nrof_voxels + thread_per_block.x - 1) / thread_per_block.x);
@@ -121,7 +122,7 @@ void backproject_LUT_CUDA(float* features_dev, int32_t* LUT_dev, float* volume_d
 }
 
 void backproject_LUT_GPU(float * features, int32_t * LUT, float* volume,
-                        float * n_voxels,int32_t n_images,int32_t n_channels) {
+                        int * n_voxels,int32_t n_images,int32_t n_channels) {
     backproject_LUT_CUDA(features, LUT, volume,
         n_images, n_channels,
         n_voxels
@@ -129,16 +130,18 @@ void backproject_LUT_GPU(float * features, int32_t * LUT, float* volume,
 }
 
 
-void build_LUT_cuda(float* n_voxels, float* voxel_size_dev, float* origin_dev, float* projection,
+void build_LUT_cuda(int* n_voxels, float* voxel_size_dev, float* origin_dev, float* projection,
                     int32_t* LUT, 
                     int32_t n_images, int32_t height, int32_t width) {
-    // int32_t n_x_voxels = int32_t(n_voxels[0]);
-    // int32_t n_y_voxels = int32_t(n_voxels[1]);
-    // int32_t n_z_voxels = int32_t(n_voxels[2]);
-    int32_t n_x_voxels = 200;
-    int32_t n_y_voxels = 200;
-    int32_t n_z_voxels = 4;
-    size_t total_nrof_voxels = n_images * n_x_voxels * n_y_voxels * n_z_voxels;
+    int32_t n_x_voxels = int32_t(n_voxels[0]);
+    int32_t n_y_voxels = int32_t(n_voxels[1]);
+    int32_t n_z_voxels = int32_t(n_voxels[2]);
+    // int32_t n_x_voxels = 200;
+    // int32_t n_y_voxels = 200;
+    // int32_t n_z_voxels = 6;
+    // size_t total_nrof_voxels = n_images * n_x_voxels * n_y_voxels * n_z_voxels;
+    // size_t total_nrof_voxels = n_images * n_voxels[0] * n_voxels[1] * n_voxels[2];
+    size_t total_nrof_voxels = (n_images * n_voxels[0] * n_voxels[1] * n_voxels[2]);
     #define BLOCK_SIZE 1024
     dim3 thread_per_block(BLOCK_SIZE);
     dim3 block_per_grid((total_nrof_voxels + thread_per_block.x - 1) / thread_per_block.x);
@@ -150,7 +153,7 @@ void build_LUT_cuda(float* n_voxels, float* voxel_size_dev, float* origin_dev, f
                         n_images, height, width);
 }
 
-void build_LUT_GPU(float* n_voxels, float* voxel_size, float* origin,
+void build_LUT_GPU(int* n_voxels, float* voxel_size, float* origin,
                     float* projection, int32_t n_images, int32_t height, int32_t width, int32_t n_channels,
                     int32_t* LUT) {
 
@@ -208,7 +211,7 @@ public:
     nvinfer1::DimsExprs getOutputDimensions(
         int32_t outputIndex, const nvinfer1::DimsExprs* inputs, int32_t nbInputs, nvinfer1::IExprBuilder& exprBuilder) noexcept{
         nvinfer1::DimsExprs output_dims;
-        std::vector<int32_t> n_voxels{200, 200, 4};
+        std::vector<int32_t> n_voxels{200, 200, 6}; //nuscenes 200,200,6 roadside 200,200,4
         output_dims.nbDims = 4;
         output_dims.d[0] = exprBuilder.constant(n_voxels[0]);
         output_dims.d[1] = exprBuilder.constant(n_voxels[1]);
@@ -335,20 +338,29 @@ public:
             return 1;
 			INFOF("not implement function");
 		}
-
+        
         int32_t n_images = features_tensor.shape_[0];
         int32_t height = features_tensor.shape_[1];
         int32_t width = features_tensor.shape_[2];
         int32_t n_channels = features_tensor.shape_[3];
-
         float * features = features_tensor.ptr<float>();
+        // cal_debug(features,n_images*height*width*n_channels,__LINE__,stream,"features");
 
         float * param_ = param_tensor.ptr<float>();
+        // cal_debug(param_,20,__LINE__,stream,"param_");
 
         float * n_voxels_float = param_;
         float * voxel_size_tensor = n_voxels_float + 3;
         float * origin_tensor = voxel_size_tensor +3;
         float * projection_tensor = origin_tensor + 3;
+
+        // n_voxels 转int 待优化
+        float n_voxels_float_host[3];
+        cudaMemcpy(n_voxels_float_host, n_voxels_float, 3 * sizeof(float), cudaMemcpyDeviceToHost);
+        int n_voxels_int[3];
+        for (int i = 0; i < 3; i++) {
+            n_voxels_int[i] = static_cast<int>(n_voxels_float_host[i]);
+        }
 
         
         int32_t *LUT  = (int32_t *)workspace;
@@ -361,14 +373,15 @@ public:
         
         /////////////////////////////
         // 创建LUT 映射表 TODO代优化 初步思路在pytorch中实现，然后传进来
-        build_LUT_GPU(n_voxels_float, voxel_size_tensor, origin_tensor, projection_tensor,
+        build_LUT_GPU(n_voxels_int, voxel_size_tensor, origin_tensor, projection_tensor,
                     n_images, height, width, n_channels, LUT);
 
 
         //////////////////////////////////
         // 投影
-        backproject_LUT_GPU(features, LUT, volume_output.ptr<float>(), n_voxels_float,n_images, n_channels);
+        backproject_LUT_GPU(features, LUT, volume_output.ptr<float>(), n_voxels_int,n_images, n_channels);
 
+        // cal_debug(volume_output.ptr<float>(),volume_output.shape_[0]*volume_output.shape_[1]*volume_output.shape_[2]*volume_output.shape_[3],__LINE__,stream,"volume_output");
        
 		return 0;
 	}

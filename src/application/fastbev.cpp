@@ -76,7 +76,7 @@ void saveimg(uint8_t* image_host,int width,int height,int i=0){
 
 void resize_normal_mat(cv::Mat &image, int width, int height, float mean[3], float std[3]) {
     // 计算缩放比例
-    float scale = std::min(float(width) / image.cols, float(height) / image.rows);
+    float scale = float(width) / image.cols;
 
     // 计算缩放后的大小
     int new_width = int(image.cols * scale);
@@ -88,9 +88,13 @@ void resize_normal_mat(cv::Mat &image, int width, int height, float mean[3], flo
     // 在上下两端用0填充
     int top_pad = (height - new_height) / 2;
     int bottom_pad = height - new_height - top_pad;
-    cv::copyMakeBorder(image, image, top_pad, bottom_pad, 0, 0, cv::BORDER_CONSTANT, cv::Scalar(0, 0, 0));
-
-    // std::cout << new_width <<"  "  << new_height  <<"  "<< top_pad  <<"  " << bottom_pad <<std::endl;
+    if (top_pad >= 0) {
+        cv::copyMakeBorder(image, image, top_pad, bottom_pad, 0, 0, cv::BORDER_CONSTANT, cv::Scalar(0, 0, 0));
+    } else {
+        cv::Mat cropped = image(cv::Rect(0, -top_pad, new_width, height));
+        image = cropped.clone();
+    }
+    // std::cout << new_width <<"  "  << new_height  <<"  "<< top_pad  <<"  " << bottom_pad <<" "<<image.cols <<" "<<image.rows  <<std::endl;
     // // 将图像大小调整为指定的宽度和高度
     // cv::resize(image, image, cv::Size(width, height));
     
@@ -292,7 +296,8 @@ namespace Fastbev{
             int max_batch_size = engine->get_max_batch_size();
             auto input         = engine->tensor("input");
             auto output        = engine->tensor("output");
-            int num_classes    = output->size(2) - 9;  //  fastbev classnum fastbev: 7+ 2 +11 x y z w l h r d1 d2  classnum
+            int num_classes    = output->size(2) - 11;  //  fastbev classnum fastbev: 7+ 2 +11 x y z w l h r d1 d2  classnum
+            // nuscenes -11 roadside -9  because of velocity
             printf("num_classes : [%d] \n",num_classes);
 
             input_cam_num_      = input->size(1);
@@ -470,6 +475,12 @@ namespace Fastbev{
                 checkCudaRuntime(cudaMemcpyAsync(tensor->gpu<float>() + i * tensor_input_size, reinterpret_cast<float*>(img.data), tensor_input_size*sizeof(float), cudaMemcpyHostToDevice, preprocess_stream));
             }
             cudaStreamSynchronize(preprocess_stream);
+            // // 打印前100个float
+            // float* outputs_data = static_cast<float*>(tensor->cpu<float>());
+            // for (int i = 3244031-100; i < 3244031; ++i) {
+            // 	std::cout << outputs_data[i] << " ";
+            // }
+            // std::cout << "tensor === "<<std::endl;
 
 
             return true;

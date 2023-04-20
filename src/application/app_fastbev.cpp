@@ -7,10 +7,16 @@
 
 using namespace std;
 
-
+//nuscenes
 static const char* label_map[] = {
- "Pedestrian", "Car","MotorcyleRider", "Crane", "Motorcycle", "Bus", "BicycleRider", "Van", "Excavator", "TricycleRider","Truck"
-};
+"car", "truck", "trailer", "bus", "construction_vehicle", "bicycle",
+        "motorcycle", "pedestrian", "traffic_cone", "barrier"};
+
+// static const char* label_map[] = {
+// "Pedestrian", "Car","MotorcyleRider", "Crane", "Motorcycle", "Bus", "BicycleRider", "Van", "Excavator", "TricycleRider","Truck"
+// };
+
+
 static void append_to_file(const string& file, const string& data){
     FILE* f = fopen(file.c_str(), "a+");
     if(f == nullptr){
@@ -92,6 +98,76 @@ void forward(shared_ptr<Fastbev::Infer> &engine, Fastbev::Image &images,cv::Mat 
     cv::imwrite("result.png", img);
 }
 
+static void inference_and_performance_NuScenes(int deviceid, const string& engine_file, TRT::Mode mode, const string& model_name,const string& imgpath){
+
+
+    auto engine = Fastbev::create_infer(
+        engine_file,                // engine file
+        deviceid,                   // gpu id
+        0.7f,                      // confidence threshold
+        0.45f,                      // nms threshold
+        Fastbev::NMSMethod::FastGPU,   // NMS method, fast GPU / CPU
+        1024,                       // max objects
+        false                       // preprocess use multi stream
+    );
+    if(engine == nullptr){
+        INFOE("Engine is nullptr");
+        return;
+    }
+
+    std::vector<cv::Mat> images_mat;
+    auto img_FRONT = cv::imread("./images/n015-2018-08-02-17-16-37+0800__CAM_FRONT__1533201471912460.jpg");
+    auto img_FRONT_RIGHT = cv::imread("./images/n015-2018-08-02-17-16-37+0800__CAM_FRONT_RIGHT__1533201471920339.jpg");
+    auto img_FRONT_LEFT = cv::imread("./images/n015-2018-08-02-17-16-37+0800__CAM_FRONT_LEFT__1533201471904844.jpg");
+    auto img_BACK = cv::imread("./images/n015-2018-08-02-17-16-37+0800__CAM_BACK__1533201471937525.jpg");
+    auto img_LEFT = cv::imread("./images/n015-2018-08-02-17-16-37+0800__CAM_BACK_LEFT__1533201471947423.jpg");
+    auto img_RIGHT = cv::imread("./images/n015-2018-08-02-17-16-37+0800__CAM_BACK_RIGHT__1533201471927893.jpg");
+
+    images_mat.emplace_back(img_FRONT);
+    images_mat.emplace_back(img_FRONT_RIGHT);
+    images_mat.emplace_back(img_FRONT_LEFT);
+    images_mat.emplace_back(img_BACK);
+    images_mat.emplace_back(img_LEFT);
+    images_mat.emplace_back(img_RIGHT);
+
+    Fastbev::Image images(images_mat);
+    auto boxes = engine->commit(images).get();
+    // for(auto& obj : boxes)
+    //     printf("class[%s] confidence[%f] label[%d] x[%f] y[%f] z[%f] dx[%f] dy[%f] dz[%f] rot[%f]  \n",
+    //         label_map[obj.label],obj.confidence,obj.label,obj.x,obj.y,obj.z,obj.dx,obj.dy,obj.dz,obj.rot);
+    
+
+    int bevsize_w = 1000;
+    int bevsize_h = 1000;
+    cv::Mat img(bevsize_h, bevsize_w, CV_8UC3, cv::Scalar(255,255,255));
+    int factor = 5;
+    for(auto& obj : boxes){
+        printf("class[%s] confidence[%f] label[%d] x[%f] y[%f] z[%f] dx[%f] dy[%f] dz[%f] rot[%f]  \n",
+            label_map[obj.label],obj.confidence,obj.label,obj.x,obj.y,obj.z,obj.dx,obj.dy,obj.dz,obj.rot);
+
+        // Calculate the four corner points of the rotated rectangle
+        uint8_t b, g, r;
+        tie(b, g, r) = iLogger::random_color(obj.label + 1);
+
+        int x = bevsize_w - (obj.y + 51.2)*factor;
+        int y = bevsize_h - (obj.x + 51.2) * factor;
+        int w = obj.dx * factor;
+        int h = obj.dy * factor;
+        int rot = int(90 - obj.rot/3.1415926*180 + 360)%180;
+        // printf("%d %d %d %d %d \n",x,y,x+w,y+h,r);
+        cv::RotatedRect box(cv::Point(x, y), cv::Size(w, h), rot);
+        cv::Point2f vertex[4];
+	    box.points(vertex);
+        for (int i = 0; i < 4; i++)
+            cv::line(img, vertex[i], vertex[(i + 1) % 4], cv::Scalar(b, g, r),10,cv::LINE_AA);
+
+        auto caption = iLogger::format("[%s %.2f]",  label_map[obj.label],obj.confidence);
+        cv::putText(img, caption, (cv::Point(x, y-w-10)), 0, 0.5, cv::Scalar(b, g, r), 1, 16);
+
+    }
+    cv::imwrite("result.png", img);
+    engine.reset();
+}
 
 
 static void inference_and_performance(int deviceid, const string& engine_file, TRT::Mode mode, const string& model_name,const string& imgpath){
@@ -261,15 +337,16 @@ static void test(TRT::Mode mode, const string& model,const string& imgpath,const
         );
     }
 
-    inference_and_performance(deviceid, model_file, mode, name,imgpath);
-    
+    // inference_and_performance(deviceid, model_file, mode, name,imgpath);
+    inference_and_performance_NuScenes(deviceid, model_file, mode, name,imgpath);
 }
 
 
 int app_fastbev(){
 
     // test(TRT::Mode::FP32, "roadside_train_half_res_aug_20230405-2208—epoch_50_20230414-1135","images",1);
-    test(TRT::Mode::FP16, "roadside_train_half_res_aug_20230405-2208—epoch_50_20230414-1135","images",1);
+    // test(TRT::Mode::FP16, "roadside_train_half_res_aug_20230405-2208—epoch_50_20230414-1135","images",1);
+    test(TRT::Mode::FP32, "fastbev-tiny_train_half_res_aug_20230419-1811—epoch_30_20230420-1630","images",1);
 
     return 0;
 }
